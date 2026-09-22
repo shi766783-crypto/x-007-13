@@ -1,0 +1,88 @@
+// 成就徽章定义：12 种，每项含解锁条件（基于全局状态快照）
+
+export const ACHIEVEMENTS = [
+  {
+    id: 'first-stock',
+    name: '首次备菜',
+    icon: '🌱',
+    desc: '添加第一个食材到库存',
+    check: (s) => s.inventoryCount >= 1,
+  },
+  {
+    id: 'zero-waste-week',
+    name: '零浪费周',
+    icon: '♻️',
+    desc: '本周无任何过期食材',
+    check: (s) => s.weekExpiredCount === 0 && s.weekTrackedCount > 0,
+  },
+  {
+    id: 'recipe-master',
+    name: '食谱达人',
+    icon: '👨‍🍳',
+    desc: '累计规划 10 道菜品',
+    check: (s) => s.totalDishes >= 10,
+  },
+  {
+    id: 'purchase-actuary',
+    name: '采购精算师',
+    icon: '🧮',
+    desc: '一次采购清单全部精确补足缺口',
+    check: (s) => s.actuaryPurchases >= 1,
+  },
+  {
+    id: 'nutrition-balanced',
+    name: '营养均衡家',
+    icon: '⚖️',
+    desc: '本周平均营养评分达到 80 分',
+    check: (s) => s.avgNutritionScore >= 80,
+  },
+  {
+    id: 'inventory-manager',
+    name: '库存管理员',
+    icon: '📦',
+    desc: '库存中同时保有 20 种食材',
+    check: (s) => s.inventoryCount >= 20,
+  },
+  {
+    id: 'fridge-cleaner',
+    name: '冰箱清理师',
+    icon: '🧹',
+    desc: '完成 5 次冰箱清理挑战',
+    check: (s) => s.challengeCount >= 5,
+  },
+  {
+    id: 'seven-day-planner',
+    name: '七日规划师',
+    icon: '🗓️',
+    desc: '一周 21 餐全部安排菜品',
+    check: (s) => s.plannedMeals >= 21,
+  },
+  {
+    id: 'clean-plate',
+    name: '光盘行动',
+    icon: '🍽️',
+    desc: '累计记录 30 次实际饮食',
+    check: (s) => s.recordedMeals >= 30,
+  },
+  {
+    id: 'points-master',
+    name: '积分达人',
+    icon: '🏆',
+    desc: '累计获得 100 积分',
+    check: (s) => s.totalPoints >= 100,
+  },
+  {
+    id: 'shopping-pro',
+    name: '采购达人',
+    icon: '🛒',
+    desc: '完成 5 次采购清单',
+    check: (s) => s.purchaseRounds >= 5,
+  },
+  {
+    id: 'persistence-star',
+    name: '坚持之星',
+    icon: '⭐',
+    desc: '连续记录饮食 7 天',
+    check: (s) => s.maxStreak >= 7,
+  },
+]

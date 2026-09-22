@@ -1,0 +1,56 @@
+# --- 依赖 ---
+node_modules/
+.pnp
+.pnp.js
+
+# --- 构建产物 ---
+dist/
+dist-ssr/
+build/
+*.local
+
+# --- 日志 ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- 编辑器 / IDE ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# --- 测试覆盖率 ---
+coverage/
+.nyc_output/
+
+# --- 环境变量 / 密钥 ---
+.env
+.env.*
+!.env.example
+
+# --- 缓存 ---
+.cache/
+.temp/
+.tmp/
+*.tsbuildinfo
+.vite/
+.eslintcache
+
+# PINRU annotation baseline
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+!.env.sample

@@ -1,0 +1,21 @@
+{
+  "name": "family-meal-manager",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "家庭饮食计划与食材管家 - 纯前端 Vue 3 应用",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pinia": "^2.2.6",
+    "vue": "^3.4.38",
+    "vue-router": "^4.4.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.2",
+    "vite": "^5.4.2"
+  }
+}
