@@ -29,8 +29,13 @@ export function remainingDays(purchaseDate, shelfLifeDays, today = new Date()) {
 
 // 计算过期日期 key
 export function expiryDateKey(purchaseDate, shelfLifeDays) {
-  const d = parseDateKey(purchaseDate)
-  d.setDate(d.getDate() + shelfLifeDays)
+  return addDaysKey(purchaseDate, shelfLifeDays)
+}
+
+// 某个日期 key 偏移 n 天后的日期 key
+export function addDaysKey(dateKey, days) {
+  const d = parseDateKey(dateKey)
+  d.setDate(d.getDate() + Number(days))
   return toDateKey(d)
 }
 

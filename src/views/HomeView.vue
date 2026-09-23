@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useInventoryStore } from '@/stores/inventory'
 import { useStatsStore } from '@/stores/stats'
 import { useUserStore } from '@/stores/user'
+import { RESTOCK_WARN_DAYS } from '@/constants'
 import BaseTag from '@/components/common/BaseTag.vue'
 import BaseEmpty from '@/components/common/BaseEmpty.vue'
 import { expiryDateKey } from '@/utils/date'
@@ -16,6 +17,13 @@ const near = computed(() => inventory.nearExpiryItems)
 const priority = computed(() =>
   [...inventory.expiredItems, ...inventory.nearExpiryItems].sort((a, b) => a.remain - b.remain),
 )
+
+// 补货提醒（按默认预警天数）
+const restockAlerts = computed(() => inventory.restockAlerts(RESTOCK_WARN_DAYS))
+
+function fmt(n) {
+  return String(Math.round(Number(n) * 100) / 100)
+}
 </script>
 
 <template>
@@ -37,6 +45,24 @@ const priority = computed(() =>
       <div class="alert-card ok">
         <div class="num">{{ inventory.items.length }}</div>
         <div class="txt">库存总种类</div>
+      </div>
+    </div>
+
+    <div v-if="restockAlerts.length" class="card restock-card">
+      <div class="section-title">
+        <span>🔔 补货提醒 · {{ restockAlerts.length }} 种食材即将用完</span>
+        <router-link to="/shopping" class="link">去补货 →</router-link>
+      </div>
+      <div class="restock-list">
+        <div v-for="a in restockAlerts" :key="a.id" class="restock-item">
+          <span class="r-name">{{ a.name }}</span>
+          <span class="muted small">剩 {{ fmt(a.quantity) }}{{ a.unit }}</span>
+          <BaseTag
+            :text="a.urgent ? '今天内用完' : `${Math.round(a.daysLeft)} 天后用完`"
+            :color="a.urgent ? '#ef5350' : '#ff9800'"
+          />
+          <span class="muted small r-suggest">建议补 {{ fmt(a.suggested) }}{{ a.unit }}</span>
+        </div>
       </div>
     </div>
 
@@ -135,6 +161,30 @@ const priority = computed(() =>
 }
 .link {
   font-size: 13px;
+}
+.restock-card {
+  border-color: #ffd699;
+  background: linear-gradient(180deg, #fffaf2 0%, #ffffff 55%);
+}
+.restock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.restock-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  flex-wrap: wrap;
+}
+.restock-item .r-name {
+  font-weight: 600;
+}
+.restock-item .r-suggest {
+  margin-left: auto;
 }
 .priority-list {
   display: flex;

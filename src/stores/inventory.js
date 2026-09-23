@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { read, write } from '@/utils/storage'
 import { uid } from '@/utils/id'
-import { remainingDays } from '@/utils/date'
-import { EXPIRY_WARN_DAYS } from '@/constants'
+import { remainingDays, toDateKey, addDaysKey } from '@/utils/date'
+import { EXPIRY_WARN_DAYS, RESTOCK_WARN_DAYS, RESTOCK_TARGET_DAYS } from '@/constants'
+import { useConsumptionStore } from './consumption'
 
 const STORAGE_KEY = 'inventory'
 
@@ -59,6 +60,44 @@ export const useInventoryStore = defineStore('inventory', {
     totalQuantity() {
       return this.items.reduce((sum, i) => sum + Number(i.quantity || 0), 0)
     },
+
+    // 补货提醒：根据历史消耗速度估算预计用完日期，返回提前预警的食材
+    // 用法：inventory.restockAlerts(3)
+    restockAlerts() {
+      return (warnDays = RESTOCK_WARN_DAYS) => {
+        const consumption = useConsumptionStore()
+        const today = new Date()
+        const todayKey = toDateKey(today)
+
+        return this.items
+          .map((item) => {
+            const stat = consumption.statFor(item, today)
+            if (!stat.count || !(stat.ratePerDay > 0)) return null
+
+            const quantity = Number(item.quantity || 0)
+            const daysLeft = quantity / stat.ratePerDay
+            // 建议补货量 = 目标周期用量 - 当前库存（至少补一天的用量）
+            const suggested = Math.max(
+              stat.ratePerDay,
+              stat.ratePerDay * RESTOCK_TARGET_DAYS - quantity,
+            )
+
+            return {
+              ...item,
+              ratePerDay: stat.ratePerDay,
+              consumedTotal: stat.total,
+              consumedCount: stat.count,
+              reliable: stat.reliable,
+              daysLeft,
+              runOutDate: addDaysKey(todayKey, Math.floor(daysLeft)),
+              suggested,
+              urgent: daysLeft <= 1,
+            }
+          })
+          .filter((a) => a && a.daysLeft <= warnDays)
+          .sort((a, b) => a.daysLeft - b.daysLeft)
+      }
+    },
   },
 
   actions: {
@@ -85,13 +124,27 @@ export const useInventoryStore = defineStore('inventory', {
       this.persist()
     },
 
-    // 消耗食材（减少数量，归零则删除）
+    // 消耗食材（减少数量，归零则删除），同时记录一条消耗历史
     consume(id, amount = 1) {
       const item = this.items.find((i) => i.id === id)
       if (!item) return
-      const next = Number(item.quantity) - Number(amount)
+      const used = Math.min(Number(item.quantity), Number(amount))
+      if (!(used > 0)) return
+
+      useConsumptionStore().record({
+        ingredientId: item.id,
+        name: item.name,
+        unit: item.unit,
+        quantity: used,
+      })
+
+      const next = Number(item.quantity) - used
       if (next <= 0) this.removeItem(id)
-      else this.updateItem(id, { quantity: next })
+      else {
+        const idx = this.items.findIndex((i) => i.id === id)
+        this.items[idx] = { ...item, quantity: next }
+        this.persist()
+      }
     },
 
     // 入库（增加数量），不存在则新建

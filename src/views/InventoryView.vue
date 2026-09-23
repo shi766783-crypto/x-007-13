@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useInventoryStore } from '@/stores/inventory'
+import { useConsumptionStore } from '@/stores/consumption'
 import { CATEGORIES, LOCATIONS, CATEGORY_ICONS, LOCATION_ICONS } from '@/constants'
 import IngredientForm from '@/components/inventory/IngredientForm.vue'
+import RestockAlerts from '@/components/inventory/RestockAlerts.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseTag from '@/components/common/BaseTag.vue'
@@ -10,6 +12,7 @@ import BaseEmpty from '@/components/common/BaseEmpty.vue'
 import { formatDate } from '@/utils/date'
 
 const inventory = useInventoryStore()
+const consumption = useConsumptionStore()
 
 const showForm = ref(false)
 const editing = ref(null)
@@ -39,9 +42,27 @@ function openEdit(item) {
 }
 
 function onSave(data) {
-  if (editing.value) inventory.updateItem(editing.value.id, data)
-  else inventory.addItem(data)
+  if (editing.value) {
+    // 编辑时数量被调减的部分也计入消耗历史，用于补货速度估算
+    const decrease = Number(editing.value.quantity || 0) - Number(data.quantity || 0)
+    if (decrease > 0) {
+      inventory.consume(editing.value.id, decrease)
+      if (Number(data.quantity) > 0) inventory.updateItem(editing.value.id, data)
+    } else {
+      inventory.updateItem(editing.value.id, data)
+    }
+  } else {
+    inventory.addItem(data)
+  }
   showForm.value = false
+}
+
+// 卡片上展示的日均消耗（无记录返回 null）
+function rateOf(item) {
+  const stat = consumption.statFor(item)
+  return stat.count && stat.ratePerDay > 0
+    ? Math.round(stat.ratePerDay * 100) / 100
+    : null
 }
 
 function statusTag(item) {
@@ -57,6 +78,8 @@ function statusTag(item) {
       <h2>🥬 食材库存</h2>
       <BaseButton @click="openAdd">+ 添加食材</BaseButton>
     </div>
+
+    <RestockAlerts />
 
     <div class="filters card">
       <div class="filter-group">
@@ -113,6 +136,9 @@ function statusTag(item) {
         <div class="item-body">
           <BaseTag :text="statusTag(item).text" :color="statusTag(item).color" />
           <span class="muted small">购买于 {{ formatDate(item.purchaseDate) }}</span>
+        </div>
+        <div v-if="rateOf(item) !== null" class="rate-hint muted small">
+          📉 日均消耗约 {{ rateOf(item) }}{{ item.unit }}
         </div>
         <div v-if="item.note" class="note">{{ item.note }}</div>
         <div class="item-actions">
@@ -216,6 +242,9 @@ function statusTag(item) {
   justify-content: space-between;
 }
 .small {
+  font-size: 12px;
+}
+.rate-hint {
   font-size: 12px;
 }
 .note {

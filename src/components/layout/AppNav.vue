@@ -1,5 +1,6 @@
 <script setup>
 import { useInventoryStore } from '@/stores/inventory'
+import { RESTOCK_WARN_DAYS } from '@/constants'
 
 const inventory = useInventoryStore()
 
@@ -7,7 +8,12 @@ const links = [
   { to: '/', label: '首页', icon: '🏠' },
   { to: '/inventory', label: '食材库存', icon: '🥬', badge: () => inventory.items.length },
   { to: '/meal-plan', label: '每周食谱', icon: '📅' },
-  { to: '/shopping', label: '采购清单', icon: '🛒' },
+  {
+    to: '/shopping',
+    label: '采购清单',
+    icon: '🛒',
+    badge: () => inventory.restockAlerts(RESTOCK_WARN_DAYS).length,
+  },
   { to: '/diet', label: '饮食记录', icon: '🍽️' },
   { to: '/dashboard', label: '饮食看板', icon: '📊' },
   { to: '/challenge', label: '清理挑战', icon: '🧹' },
