@@ -75,5 +75,14 @@ export const FOOD_GROUPS = {
 // 保质期预警阈值（天）
 export const EXPIRY_WARN_DAYS = 3
 
+// 补货提醒提前量（天）：预计该天数内用完的食材会被列出
+export const RESTOCK_WARN_DAYS = 3
+
+// 消耗速度统计窗口（天）：基于该窗口内的消耗记录估算日均消耗
+export const CONSUMPTION_WINDOW_DAYS = 30
+
+// 建议补货量覆盖的使用周期（天）：加入采购清单时默认补到够用这么久
+export const RESTOCK_CYCLE_DAYS = 7
+
 // 挑战完成奖励积分
 export const CHALLENGE_POINTS = 10

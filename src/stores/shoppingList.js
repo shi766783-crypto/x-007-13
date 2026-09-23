@@ -3,6 +3,7 @@ import { read, write } from '@/utils/storage'
 import { uid } from '@/utils/id'
 import { useInventoryStore } from './inventory'
 import { useMealPlanStore } from './mealPlan'
+import { refKey } from '@/utils/restock'
 
 const LIST_KEY = 'shopping-list'
 const HISTORY_KEY = 'shopping-history'
@@ -33,6 +34,10 @@ export const useShoppingListStore = defineStore('shoppingList', {
     // 缺口总额（未采购项）
     totalGap: (state) =>
       state.items.filter((i) => !i.purchased).reduce((s, i) => s + Number(i.gap || 0), 0),
+    // 待采购项的食材键集合（补货提醒一键加入时去重）
+    activeRefKeys() {
+      return new Set(this.activeItems.map((i) => refKey(i.name, i.unit)))
+    },
   },
 
   actions: {
@@ -69,6 +74,35 @@ export const useShoppingListStore = defineStore('shoppingList', {
 
       this.persist()
       return this.items
+    },
+
+    // 将补货提醒食材加入采购清单（已在待采购清单中的自动跳过）
+    // alerts: inventory.restockAlerts 或其子集
+    addRestockItems(alerts) {
+      const existing = this.activeRefKeys
+      const added = []
+      alerts.forEach((a) => {
+        if (existing.has(refKey(a.name, a.unit))) return
+        const item = {
+          id: uid('shop'),
+          name: a.name,
+          unit: a.unit,
+          ingredientId: a.ingredientId || null,
+          category: a.category || '其他',
+          required: a.suggested,
+          inStock: a.inStock,
+          gap: a.suggested,
+          price: 0,
+          purchased: false,
+          source: 'restock',
+          createdAt: new Date().toISOString(),
+        }
+        this.items.unshift(item)
+        existing.add(refKey(a.name, a.unit))
+        added.push(item)
+      })
+      if (added.length) this.persist()
+      return added
     },
 
     // 标记已采购并自动入库

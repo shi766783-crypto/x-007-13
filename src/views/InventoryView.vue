@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useInventoryStore } from '@/stores/inventory'
 import { CATEGORIES, LOCATIONS, CATEGORY_ICONS, LOCATION_ICONS } from '@/constants'
 import IngredientForm from '@/components/inventory/IngredientForm.vue'
+import RestockAlert from '@/components/inventory/RestockAlert.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseTag from '@/components/common/BaseTag.vue'
@@ -57,6 +58,8 @@ function statusTag(item) {
       <h2>🥬 食材库存</h2>
       <BaseButton @click="openAdd">+ 添加食材</BaseButton>
     </div>
+
+    <RestockAlert />
 
     <div class="filters card">
       <div class="filter-group">

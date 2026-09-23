@@ -4,6 +4,7 @@ import { useShoppingListStore } from '@/stores/shoppingList'
 import { useMealPlanStore } from '@/stores/mealPlan'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseEmpty from '@/components/common/BaseEmpty.vue'
+import RestockAlert from '@/components/inventory/RestockAlert.vue'
 
 const shopping = useShoppingListStore()
 const mealPlan = useMealPlanStore()
@@ -54,6 +55,8 @@ function fmtDate(iso) {
 
     <p class="muted hint">系统会对比本周食谱所需食材总量与当前库存，自动计算缺口数量。</p>
 
+    <RestockAlert />
+
     <div v-if="active.length" class="toolbar card">
       <BaseButton size="sm" @click="markSelected" :disabled="!selected.size">
         标记已采购（{{ selected.size }}）
@@ -70,7 +73,14 @@ function fmtDate(iso) {
           <input type="checkbox" :checked="selected.has(i.id)" @change="toggle(i.id)" />
           <div class="info">
             <div class="name">{{ i.name }}</div>
-            <div class="muted small">需 {{ i.required }}{{ i.unit }} · 库存 {{ i.inStock }}{{ i.unit }} · 缺 {{ i.gap }}{{ i.unit }}</div>
+            <div class="muted small">
+              <template v-if="i.source === 'restock'">
+                补货建议 {{ i.gap }}{{ i.unit }} · 当前库存 {{ i.inStock }}{{ i.unit }}
+              </template>
+              <template v-else>
+                需 {{ i.required }}{{ i.unit }} · 库存 {{ i.inStock }}{{ i.unit }} · 缺 {{ i.gap }}{{ i.unit }}
+              </template>
+            </div>
           </div>
           <div class="price">
             <span class="muted small">¥</span>

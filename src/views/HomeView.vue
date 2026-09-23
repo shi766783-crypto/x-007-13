@@ -5,6 +5,7 @@ import { useStatsStore } from '@/stores/stats'
 import { useUserStore } from '@/stores/user'
 import BaseTag from '@/components/common/BaseTag.vue'
 import BaseEmpty from '@/components/common/BaseEmpty.vue'
+import RestockAlert from '@/components/inventory/RestockAlert.vue'
 import { expiryDateKey } from '@/utils/date'
 
 const inventory = useInventoryStore()
@@ -39,6 +40,8 @@ const priority = computed(() =>
         <div class="txt">库存总种类</div>
       </div>
     </div>
+
+    <RestockAlert />
 
     <div class="card">
       <div class="section-title">

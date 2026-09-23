@@ -1,10 +1,13 @@
 import { defineStore } from 'pinia'
 import { read, write } from '@/utils/storage'
 import { uid } from '@/utils/id'
-import { remainingDays } from '@/utils/date'
-import { EXPIRY_WARN_DAYS } from '@/constants'
+import { remainingDays, toDateKey } from '@/utils/date'
+import { EXPIRY_WARN_DAYS, RESTOCK_WARN_DAYS, CONSUMPTION_WINDOW_DAYS, RESTOCK_CYCLE_DAYS } from '@/constants'
+import { predictRestockAlerts } from '@/utils/restock'
 
 const STORAGE_KEY = 'inventory'
+const LOG_KEY = 'inventory-logs'
+const LOG_MAX = 500
 
 function createItem(data) {
   return {
@@ -25,6 +28,8 @@ function createItem(data) {
 export const useInventoryStore = defineStore('inventory', {
   state: () => ({
     items: read(STORAGE_KEY, []),
+    // 出入库流水 [{ id, type: 'consume'|'restock', ingredientId, name, unit, quantity, date }]
+    logs: read(LOG_KEY, []),
   }),
 
   getters: {
@@ -59,11 +64,42 @@ export const useInventoryStore = defineStore('inventory', {
     totalQuantity() {
       return this.items.reduce((sum, i) => sum + Number(i.quantity || 0), 0)
     },
+
+    // 补货提醒：根据历史消耗速度估算，列出即将用完 / 已用完的食材
+    restockAlerts(state) {
+      return predictRestockAlerts(state.items, state.logs, {
+        warnDays: RESTOCK_WARN_DAYS,
+        windowDays: CONSUMPTION_WINDOW_DAYS,
+        cycleDays: RESTOCK_CYCLE_DAYS,
+      })
+    },
   },
 
   actions: {
     persist() {
       write(STORAGE_KEY, this.items)
+    },
+
+    persistLogs() {
+      write(LOG_KEY, this.logs)
+    },
+
+    // 记录出入库流水（仅记录有实际数量变化的事件）
+    addLog(type, { id, name, unit, quantity }, date = toDateKey()) {
+      const qty = Number(quantity)
+      if (!qty || qty <= 0) return
+      this.logs.unshift({
+        id: uid('log'),
+        type,
+        ingredientId: id || null,
+        name,
+        unit,
+        quantity: qty,
+        date,
+      })
+      // 控制体积，仅保留最近 LOG_MAX 条
+      if (this.logs.length > LOG_MAX) this.logs = this.logs.slice(0, LOG_MAX)
+      this.persistLogs()
     },
 
     addItem(data) {
@@ -85,13 +121,20 @@ export const useInventoryStore = defineStore('inventory', {
       this.persist()
     },
 
-    // 消耗食材（减少数量，归零则删除）
+    // 消耗食材（减少数量，归零则删除），并记录消耗流水用于消耗速度估算
     consume(id, amount = 1) {
       const item = this.items.find((i) => i.id === id)
       if (!item) return
+      const used = Math.min(Number(item.quantity), Number(amount))
       const next = Number(item.quantity) - Number(amount)
       if (next <= 0) this.removeItem(id)
       else this.updateItem(id, { quantity: next })
+      this.addLog('consume', {
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        quantity: used,
+      })
     },
 
     // 入库（增加数量），不存在则新建
@@ -101,8 +144,9 @@ export const useInventoryStore = defineStore('inventory', {
       )
       if (exist) {
         this.updateItem(exist.id, { quantity: Number(exist.quantity) + Number(quantity) })
+        this.addLog('restock', { id: exist.id, name, unit, quantity })
       } else {
-        this.addItem({
+        const item = this.addItem({
           name,
           unit,
           quantity,
@@ -111,6 +155,7 @@ export const useInventoryStore = defineStore('inventory', {
           shelfLifeDays,
           purchaseDate: new Date().toISOString().slice(0, 10),
         })
+        this.addLog('restock', { id: item.id, name, unit, quantity })
       }
     },
 
